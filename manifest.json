@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Sum Your Horrible Tabs",
+  "version": "1.0",
+  "description": "Local AI Tab Manager using Gemini Flash",
+  "permissions": [
+    "tabs",
+    "tabGroups",
+    "storage",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "https://generativelanguage.googleapis.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

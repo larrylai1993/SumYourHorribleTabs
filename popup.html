@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1a1a1a;
+      --ink-light: #6b6b6b;
+      --ink-faint: #999;
+      --line: #e5e5e5;
+      --surface: #fafafa;
+      --bg: #ffffff;
+      --accent: #2d2d2d;
+      --accent-hover: #444;
+      --green: #3d8c6f;
+      --green-bg: #eef6f1;
+      --red: #c0392b;
+      --red-bg: #fdf0ee;
+      --input-bg: #ffffff;
+      --toggle-thumb: #ffffff;
+      --toggle-thumb-checked: #ffffff;
+      --badge-text: #ffffff;
+    }
+
+    [data-theme="dark"] {
+      --ink: #e8e8e8;
+      --ink-light: #aaa;
+      --ink-faint: #777;
+      --line: #333;
+      --surface: #1e1e1e;
+      --bg: #161616;
+      --accent: #e8e8e8;
+      --accent-hover: #ccc;
+      --green: #6bc9a0;
+      --green-bg: #1a2e24;
+      --red: #e57373;
+      --red-bg: #2e1a1a;
+      --input-bg: #1e1e1e;
+      --toggle-thumb: #888888;
+      --toggle-thumb-checked: #161616;
+      --badge-text: #161616;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --ink: #e8e8e8;
+        --ink-light: #aaa;
+        --ink-faint: #777;
+        --line: #333;
+        --surface: #1e1e1e;
+        --bg: #161616;
+        --accent: #e8e8e8;
+        --accent-hover: #ccc;
+        --green: #6bc9a0;
+        --green-bg: #1a2e24;
+        --red: #e57373;
+        --red-bg: #2e1a1a;
+        --input-bg: #1e1e1e;
+        --toggle-thumb: #888888;
+        --toggle-thumb-checked: #161616;
+        --badge-text: #161616;
+      }
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 380px;
+      min-height: 520px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header */
+    .header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header h1 {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      color: var(--ink);
+    }
+    .settings-btn {
+      background: none;
+      border: 1px solid var(--line);
+      color: var(--ink-light);
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .settings-btn:hover { border-color: var(--ink-light); color: var(--ink); }
+
+    /* Settings Panel */
+    .settings-panel {
+      display: none;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .settings-panel.show { display: block; }
+    .settings-panel label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ink-light);
+      display: block;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .settings-panel .key-row {
+      display: flex;
+      gap: 8px;
+    }
+    .settings-panel input {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+      transition: border 0.15s;
+      background: var(--input-bg);
+    }
+    .settings-panel input:focus { border-color: var(--ink-light); }
+    .settings-panel .save-key-btn {
+      padding: 8px 14px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .settings-panel .save-key-btn:hover:not(:disabled) { background: var(--accent-hover); }
+    .settings-panel .save-key-btn:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
+    .settings-panel .model-row { margin-top: 12px; }
+    .settings-panel select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+      background: var(--input-bg);
+      cursor: pointer;
+      transition: border 0.15s;
+      color: var(--ink);
+    }
+    .settings-panel select:focus { border-color: var(--ink-light); }
+
+    /* Navigation */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--line);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 11px;
+      border: none;
+      background: none;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+      color: var(--ink-faint);
+      cursor: pointer;
+      position: relative;
+      transition: color 0.15s;
+      letter-spacing: 0.2px;
+    }
+    .tab-btn.active { color: var(--ink); }
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 24px;
+      right: 24px;
+      height: 1.5px;
+      background: var(--ink);
+    }
+    .tab-btn:hover:not(.active) { color: var(--ink-light); }
+
+    /* Content */
+    .tab-content { display: none; padding: 20px 24px; }
+    .tab-content.active { display: block; }
+
+    /* Toggle */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      margin-bottom: 14px;
+    }
+    .toggle-row span {
+      font-size: 12px;
+      color: var(--ink);
+      font-weight: 500;
+    }
+    .toggle {
+      position: relative;
+      width: 38px;
+      height: 20px;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--line);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      left: 3px;
+      bottom: 3px;
+      background: var(--toggle-thumb);
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+    }
+    .toggle input:checked + .toggle-slider { background: var(--accent); }
+    .toggle input:checked + .toggle-slider::before { background: var(--toggle-thumb-checked); transform: translateX(18px); }
+
+    /* Buttons */
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    .btn + .btn { margin-top: 8px; }
+    .btn:hover { border-color: var(--ink-light); }
+    .btn:disabled { color: var(--ink-faint); border-color: var(--line); cursor: not-allowed; background: var(--surface); }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+    .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .btn-primary:disabled { background: var(--line); color: var(--ink-faint); border-color: var(--line); font-weight: 500; }
+    [data-theme="dark"] .btn-primary {
+      background: #fff;
+      color: #161616;
+      border-color: #fff;
+    }
+    [data-theme="dark"] .btn-primary:hover { background: #ddd; border-color: #ddd; }
+    [data-theme="dark"] .btn-primary:disabled { background: var(--line); color: var(--ink-faint); border-color: var(--line); }
+    .btn-danger {
+      color: var(--red);
+      border-color: var(--red);
+      background: var(--bg);
+    }
+    .btn-danger:hover { background: var(--red-bg); }
+    .btn-danger:disabled { color: var(--ink-faint); border-color: var(--line); background: var(--surface); }
+
+    /* Divider */
+    .divider { height: 1px; background: var(--line); margin: 16px 0; }
+
+    /* Section title */
+    .section-title {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ink-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+    .section-hint {
+      font-weight: 400;
+      font-size: 10px;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    /* Snapshot list */
+    .snapshot-list { max-height: 200px; overflow-y: auto; }
+    .snapshot-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      margin-bottom: 6px;
+    }
+    .snapshot-info { flex: 1; min-width: 0; }
+    .snapshot-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .snapshot-meta { font-size: 10px; color: var(--ink-faint); margin-top: 2px; }
+    .snapshot-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .snapshot-actions button {
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: var(--bg);
+    }
+    .btn-restore { color: var(--green); }
+    .btn-restore:hover { background: var(--green-bg); border-color: var(--green); }
+    .btn-delete { color: var(--red); }
+    .btn-delete:hover { background: var(--red-bg); border-color: var(--red); }
+
+    .empty-state {
+      text-align: center;
+      padding: 20px;
+      color: var(--ink-faint);
+      font-size: 12px;
+    }
+
+    /* Group list */
+    .group-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .group-item:hover { border-color: var(--ink-light); }
+    .group-item input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .group-color-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .group-item-info { flex: 1; min-width: 0; }
+    .group-item-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .group-item-count { font-size: 10px; color: var(--ink-faint); }
+    .group-actions { display: flex; gap: 6px; margin-top: 8px; align-items: stretch; }
+    .group-actions .btn { flex: 1; white-space: nowrap; margin-top: 0; }
+    .btn-sm { padding: 7px; font-size: 11px; }
+
+    /* Duplicate list */
+    .dup-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      margin-bottom: 6px;
+    }
+    .dup-info { flex: 1; min-width: 0; }
+    .dup-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .dup-url {
+      font-size: 10px;
+      color: var(--ink-faint);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .dup-close {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      color: var(--ink-faint);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .dup-close:hover { border-color: var(--red); color: var(--red); background: var(--red-bg); }
+
+    /* Status */
+    .status {
+      padding: 4px 24px 14px;
+      font-size: 11px;
+      color: var(--ink-faint);
+      min-height: 16px;
+    }
+    .status.success { color: var(--green); }
+    .status.error { color: var(--red); }
+
+    /* Badge */
+    .badge {
+      background: var(--ink);
+      color: var(--badge-text);
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 8px;
+      margin-left: 6px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <h1>Sum Your Horrible Tabs</h1>
+    <div style="display:flex;gap:6px">
+      <button class="settings-btn" id="themeToggle" title="切換深色模式">
+        <svg id="themeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button class="settings-btn" id="settingsToggle" title="設定">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Settings Panel -->
+  <div class="settings-panel" id="settingsPanel">
+    <label>Gemini API Key</label>
+    <div class="key-row">
+      <input type="password" id="apiKey" placeholder="貼上你的 API Key">
+      <button class="save-key-btn" id="saveKeyBtn">儲存</button>
+    </div>
+    <div class="model-row">
+      <label>模型</label>
+      <select id="modelSelect" disabled>
+        <option value="">請先儲存 API Key</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="groups">群組整理</button>
+    <button class="tab-btn" data-tab="snapshots">分頁快照</button>
+    <button class="tab-btn" data-tab="dedup">重複檢測<span class="badge" id="dupBadge" style="display:none">0</span></button>
+  </div>
+
+  <!-- Tab: Groups -->
+  <div class="tab-content active" id="tab-groups">
+    <div class="toggle-row">
+      <span>保留現有群組</span>
+      <label class="toggle">
+        <input type="checkbox" id="keepGroups" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <button class="btn btn-primary" id="organizeBtn" disabled>
+      AI 智慧分組
+    </button>
+
+    <div class="divider"></div>
+
+    <div class="section-title">目前的群組 <span class="section-hint">（僅顯示已展開的群組）</span></div>
+    <div id="groupList">
+      <div class="empty-state">沒有群組</div>
+    </div>
+    <div class="group-actions" id="groupActions" style="display:none">
+      <button class="btn btn-sm" id="selectAllGroupsBtn">全選</button>
+      <button class="btn btn-danger btn-sm" id="ungroupSelectedBtn" disabled>解除勾選的群組</button>
+    </div>
+
+  </div>
+
+  <!-- Tab: Snapshots -->
+  <div class="tab-content" id="tab-snapshots">
+    <button class="btn" id="saveSnapshotBtn">
+      儲存目前快照
+    </button>
+
+    <div class="divider"></div>
+
+    <div class="section-title">已儲存的快照（最多 5 個）</div>
+    <div class="snapshot-list" id="snapshotList">
+      <div class="empty-state">尚無快照</div>
+    </div>
+  </div>
+
+  <!-- Tab: Deduplicate -->
+  <div class="tab-content" id="tab-dedup">
+    <button class="btn btn-danger" id="removeDupsBtn">
+      移除所有重複分頁
+    </button>
+
+    <div class="divider"></div>
+
+    <div class="section-title">重複的分頁</div>
+    <div id="dupList">
+      <div class="empty-state" id="noDupMsg">正在掃描...</div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="status" id="status"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
