@@ -47,7 +47,7 @@ async function handleOrganize({ keepGroups, apiKey, model, windowId }) {
         if (groupedTabIds.length > 0) {
           await chrome.tabs.ungroup(groupedTabIds);
         }
-      } catch (e) { console.warn('Ungroup failed:', e); }
+      } catch (e) { /* ignore */ }
     }
 
     const tabData = validTabs.map(t => ({
@@ -126,43 +126,31 @@ async function handleOrganize({ keepGroups, apiKey, model, windowId }) {
       if (safeIds.length === 0) continue;
 
       try {
-        console.log(`[DEBUG] Grouping all ${safeIds.length} tabs for "${group.groupName}"`);
         const groupId = await chrome.tabs.group({ tabIds: safeIds, createProperties: { windowId } });
-        console.log(`[DEBUG] Group created, groupId = ${groupId}`);
         createdGroups.push({ groupId, name: group.groupName, tabCount: safeIds.length });
       } catch (e) {
-        console.error(`[DEBUG] 建立群組「${group.groupName}」失敗:`, e.message);
+        // Group creation failed, skip
       }
     }
 
     // Phase 2: Wait, then name all groups
-    console.log(`[DEBUG] Waiting 500ms before naming ${createdGroups.length} groups...`);
     await new Promise(r => setTimeout(r, 500));
 
     for (const { groupId, name, tabCount } of createdGroups) {
       const targetColor = GROUP_COLORS[colorIdx % GROUP_COLORS.length];
       try {
-        console.log(`[DEBUG] Naming group ${groupId} → "${name}" (${targetColor})`);
         await chrome.tabGroups.update(groupId, { title: name, color: targetColor });
-        
-        // Small delay between updates
         await new Promise(r => setTimeout(r, 100));
-        
-        // Verify
-        const verify = await chrome.tabGroups.get(groupId);
-        console.log(`[DEBUG] Verify: title="${verify.title}", color="${verify.color}"`);
-        
         colorIdx++;
         groupedCount += tabCount;
       } catch (e) {
-        console.error(`[DEBUG] 命名群組「${name}」失敗:`, e.message);
+        // Group naming failed, skip
       }
     }
 
     return { success: true, groupedCount, tokenInfo };
 
   } catch (e) {
-    console.error(e);
     return { error: e.message };
   }
 }
@@ -212,7 +200,7 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+chrome.contextMenus.onClicked.addListener(async (info) => {
   if (info.menuItemId === 'remove-duplicates') {
     // 找出目前視窗中所有分頁
     const tabs = await chrome.tabs.query({ currentWindow: true });

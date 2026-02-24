@@ -151,7 +151,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       setStatus(`已載入 ${models.length} 個可用模型`, 'success');
 
     } catch (e) {
-      console.error('Failed to fetch models:', e);
       setStatus(`API Key 無效 — ${e.message}`, 'error');
       modelSelect.innerHTML = '<option value="">API Key 錯誤</option>';
       organizeBtn.disabled = true;
@@ -207,7 +206,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         setStatus(msg, 'success');
       }
     } catch (e) {
-      console.error(e);
       setStatus(e.message, 'error');
     } finally {
       organizeBtn.disabled = false;
@@ -274,8 +272,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       groupListDiv.querySelectorAll('.group-checkbox').forEach(cb => {
         cb.addEventListener('change', updateUngroupBtn);
       });
-    } catch (e) {
-      console.error('scanGroups error:', e);
+    } catch {
       groupListDiv.innerHTML = '<div class="empty-state">讀取群組失敗</div>';
       groupActions.style.display = 'none';
     }
@@ -415,7 +412,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await chrome.tabs.group({ tabIds: [created.id], groupId: groupMap[tab.groupId] });
               }
             }
-          } catch (e) { console.warn('Restore tab failed:', e); }
+          } catch { /* skip failed tab */ }
         }
 
         setStatus(`已還原 ${snapshot.tabCount} 個分頁`, 'success');
