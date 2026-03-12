@@ -178,7 +178,30 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ============================================
-  // 1. AI Tab Grouping — via service worker
+  // 1. Sort Tabs
+  // ============================================
+  const sortByTitleBtn = document.getElementById('sortByTitleBtn');
+  const sortByDomainBtn = document.getElementById('sortByDomainBtn');
+
+  async function sortTabs(by) {
+    const win = await chrome.windows.getCurrent();
+    const result = await chrome.runtime.sendMessage({
+      action: 'sortTabs',
+      by,
+      windowId: win.id
+    });
+    if (result.error) {
+      setStatus(result.error, 'error');
+    } else {
+      setStatus(`已排序 ${result.count} 個分頁`, 'success');
+    }
+  }
+
+  sortByTitleBtn.addEventListener('click', () => sortTabs('title'));
+  sortByDomainBtn.addEventListener('click', () => sortTabs('domain'));
+
+  // ============================================
+  // 2. AI Tab Grouping — via service worker
   // ============================================
   organizeBtn.addEventListener('click', async () => {
     setStatus('AI 分析中…');
@@ -214,7 +237,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // ============================================
-  // 2. Group List + Selective Ungroup
+  // 3. Group List + Selective Ungroup
   // ============================================
   scanGroups();
   scanDuplicates();
@@ -257,20 +280,56 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       groupActions.style.display = 'flex';
       groupListDiv.innerHTML = groups.map(g => `
-        <label class="group-item">
+        <div class="group-item" data-group-id="${g.id}">
           <input type="checkbox" value="${g.id}" class="group-checkbox">
-          <span class="group-color-dot" style="background:${COLOR_MAP[g.color] || '#5F6368'}"></span>
+          <button class="group-color-btn" data-color="${g.color}" style="background:${COLOR_MAP[g.color] || '#5F6368'}" title="變更顏色"></button>
           <div class="group-item-info">
-            <div class="group-item-name">${escapeHtml(g.title)}</div>
+            <span class="group-item-name" data-group-id="${g.id}">${escapeHtml(g.title)}</span>
             <div class="group-item-count">${g.tabCount} 個分頁</div>
           </div>
-        </label>
+          <button class="group-edit-btn" data-group-id="${g.id}" title="重新命名">✎</button>
+        </div>
       `).join('');
 
       updateUngroupBtn();
 
+      // Checkbox handlers
       groupListDiv.querySelectorAll('.group-checkbox').forEach(cb => {
         cb.addEventListener('change', updateUngroupBtn);
+      });
+
+      // Rename handlers
+      groupListDiv.querySelectorAll('.group-edit-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const groupId = parseInt(btn.dataset.groupId);
+          const nameSpan = groupListDiv.querySelector(`.group-item-name[data-group-id="${groupId}"]`);
+          const currentName = nameSpan.textContent;
+          const newName = prompt('輸入新的群組名稱:', currentName);
+          if (newName && newName !== currentName) {
+            const result = await chrome.runtime.sendMessage({
+              action: 'updateGroup',
+              groupId,
+              title: newName
+            });
+            if (result.success) {
+              nameSpan.textContent = newName;
+              setStatus('群組已重新命名', 'success');
+            } else {
+              setStatus(result.error || '重新命名失敗', 'error');
+            }
+          }
+        });
+      });
+
+      // Color picker handlers
+      groupListDiv.querySelectorAll('.group-color-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const groupItem = btn.closest('.group-item');
+          const groupId = parseInt(groupItem.dataset.groupId);
+          showColorPicker(btn, groupId);
+        });
       });
     } catch {
       groupListDiv.innerHTML = '<div class="empty-state">讀取群組失敗</div>';
@@ -313,7 +372,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // ============================================
-  // 3. Snapshots
+  // 4. Snapshots
   // ============================================
   renderSnapshots();
 
@@ -432,7 +491,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ============================================
-  // 4. Deduplicate Tabs
+  // 5. Deduplicate Tabs
   // ============================================
   async function scanDuplicates() {
     const tabs = await chrome.tabs.query({ currentWindow: true });
@@ -536,5 +595,59 @@ document.addEventListener('DOMContentLoaded', async () => {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  // Color picker for groups
+  function showColorPicker(anchorBtn, groupId) {
+    // Remove existing picker
+    document.querySelector('.color-picker-popup')?.remove();
+
+    const colors = Object.entries(COLOR_MAP);
+    const picker = document.createElement('div');
+    picker.className = 'color-picker-popup';
+    picker.innerHTML = colors.map(([name, hex]) =>
+      `<button class="color-option" data-color="${name}" style="background:${hex}" title="${name}"></button>`
+    ).join('');
+
+    // Position below the button
+    const rect = anchorBtn.getBoundingClientRect();
+    picker.style.position = 'fixed';
+    picker.style.top = `${rect.bottom + 4}px`;
+    picker.style.left = `${rect.left}px`;
+
+    document.body.appendChild(picker);
+
+    // Handle color selection
+    picker.addEventListener('click', async (e) => {
+      const colorBtn = e.target.closest('.color-option');
+      if (!colorBtn) return;
+
+      const color = colorBtn.dataset.color;
+      const result = await chrome.runtime.sendMessage({
+        action: 'updateGroup',
+        groupId,
+        color
+      });
+
+      if (result.success) {
+        anchorBtn.style.background = COLOR_MAP[color];
+        anchorBtn.dataset.color = color;
+        setStatus('顏色已變更', 'success');
+      } else {
+        setStatus(result.error || '變更顏色失敗', 'error');
+      }
+
+      picker.remove();
+    });
+
+    // Close on outside click
+    setTimeout(() => {
+      document.addEventListener('click', function closeHandler(e) {
+        if (!picker.contains(e.target) && e.target !== anchorBtn) {
+          picker.remove();
+          document.removeEventListener('click', closeHandler);
+        }
+      });
+    }, 0);
   }
 });

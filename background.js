@@ -5,8 +5,67 @@
 
 const GROUP_COLORS = ['blue', 'red', 'yellow', 'green', 'pink', 'purple', 'cyan', 'orange', 'grey'];
 
+// ========================================
+// Group Metadata Persistence
+// ========================================
+
+async function saveGroupMeta(groupId, title, color) {
+  const { groupMeta = {} } = await chrome.storage.local.get('groupMeta');
+  groupMeta[groupId] = { title, color, updatedAt: Date.now() };
+  await chrome.storage.local.set({ groupMeta });
+}
+
+async function removeGroupMeta(groupId) {
+  const { groupMeta = {} } = await chrome.storage.local.get('groupMeta');
+  delete groupMeta[groupId];
+  await chrome.storage.local.set({ groupMeta });
+}
+
+async function restoreAllGroupMeta() {
+  const { groupMeta = {} } = await chrome.storage.local.get('groupMeta');
+  if (Object.keys(groupMeta).length === 0) return;
+
+  // Get all current groups across all windows
+  const allGroups = await chrome.tabGroups.query({});
+  const existingGroupIds = new Set(allGroups.map(g => g.id));
+
+  // Clean up stale entries and restore missing metadata
+  for (const [groupIdStr, meta] of Object.entries(groupMeta)) {
+    const groupId = parseInt(groupIdStr);
+
+    if (!existingGroupIds.has(groupId)) {
+      // Group no longer exists, remove from storage
+      delete groupMeta[groupIdStr];
+      continue;
+    }
+
+    // Check if the group needs restoration
+    try {
+      const group = await chrome.tabGroups.get(groupId);
+      if (!group.title || group.title !== meta.title || group.color !== meta.color) {
+        await chrome.tabGroups.update(groupId, { title: meta.title, color: meta.color });
+      }
+    } catch {
+      // Group doesn't exist anymore
+      delete groupMeta[groupIdStr];
+    }
+  }
+
+  await chrome.storage.local.set({ groupMeta });
+}
+
+// Restore group metadata on Chrome startup
+chrome.runtime.onStartup.addListener(() => {
+  restoreAllGroupMeta();
+});
+
+// Clean up metadata when a group is removed
+chrome.tabGroups.onRemoved.addListener((group) => {
+  removeGroupMeta(group.id);
+});
+
 // Listen for messages from popup
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.action === 'organizeTab') {
     handleOrganize(message).then(sendResponse);
     return true;
@@ -21,6 +80,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message.action === 'removeDuplicates') {
     handleRemoveDuplicates(message.tabIds).then(sendResponse);
+    return true;
+  }
+  if (message.action === 'sortTabs') {
+    handleSortTabs(message.by, message.windowId).then(sendResponse);
+    return true;
+  }
+  if (message.action === 'updateGroup') {
+    handleUpdateGroup(message.groupId, message.title, message.color).then(sendResponse);
+    return true;
+  }
+  if (message.action === 'getGroupMeta') {
+    chrome.storage.local.get('groupMeta').then(({ groupMeta = {} }) => sendResponse(groupMeta));
     return true;
   }
 });
@@ -139,12 +210,26 @@ async function handleOrganize({ keepGroups, apiKey, model, windowId }) {
     for (const { groupId, name, tabCount } of createdGroups) {
       const targetColor = GROUP_COLORS[colorIdx % GROUP_COLORS.length];
       try {
-        await chrome.tabGroups.update(groupId, { title: name, color: targetColor });
-        await new Promise(r => setTimeout(r, 100));
+        // Try up to 3 times with increasing delay
+        for (let attempt = 0; attempt < 3; attempt++) {
+          await chrome.tabGroups.update(groupId, { title: name, color: targetColor });
+          await new Promise(r => setTimeout(r, 150));
+
+          // Verify the update succeeded
+          const verify = await chrome.tabGroups.get(groupId);
+          if (verify.title === name && verify.color === targetColor) break;
+
+          // If failed, wait longer before retry
+          await new Promise(r => setTimeout(r, 200 * (attempt + 1)));
+        }
+
+        // Persist metadata locally for restoration on restart
+        await saveGroupMeta(groupId, name, targetColor);
+
         colorIdx++;
         groupedCount += tabCount;
       } catch (e) {
-        // Group naming failed, skip
+        // Group naming failed (possibly a Saved Tab Group)
       }
     }
 
@@ -184,6 +269,52 @@ async function handleRemoveDuplicates(tabIds) {
     if (!tabIds || tabIds.length === 0) return { message: '沒有重複分頁' };
     await chrome.tabs.remove(tabIds);
     return { success: true, count: tabIds.length };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+async function handleSortTabs(by, windowId) {
+  try {
+    const allTabs = await chrome.tabs.query({ windowId });
+    const pinned = allTabs.filter(t => t.pinned);
+    const unpinned = allTabs.filter(t => !t.pinned);
+
+    const sorted = [...unpinned].sort((a, b) => {
+      if (by === 'domain') {
+        const domainA = (() => { try { return new URL(a.url).hostname; } catch { return ''; } })();
+        const domainB = (() => { try { return new URL(b.url).hostname; } catch { return ''; } })();
+        return domainA.localeCompare(domainB) || (a.title || '').localeCompare(b.title || '');
+      }
+      // default: by title
+      return (a.title || '').localeCompare(b.title || '');
+    });
+
+    // Move tabs one by one, starting after pinned tabs
+    const startIndex = pinned.length;
+    for (let i = 0; i < sorted.length; i++) {
+      await chrome.tabs.move(sorted[i].id, { index: startIndex + i });
+    }
+
+    return { success: true, count: sorted.length };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+async function handleUpdateGroup(groupId, title, color) {
+  try {
+    const updateProps = {};
+    if (title !== undefined) updateProps.title = title;
+    if (color !== undefined) updateProps.color = color;
+
+    await chrome.tabGroups.update(groupId, updateProps);
+
+    // Get current values and save to storage
+    const group = await chrome.tabGroups.get(groupId);
+    await saveGroupMeta(groupId, group.title, group.color);
+
+    return { success: true };
   } catch (e) {
     return { error: e.message };
   }

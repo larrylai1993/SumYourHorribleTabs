@@ -374,12 +374,16 @@
       cursor: pointer;
       flex-shrink: 0;
     }
-    .group-color-dot {
-      width: 10px;
-      height: 10px;
+    .group-color-btn {
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       flex-shrink: 0;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.1s;
     }
+    .group-color-btn:hover { border-color: var(--ink-light); transform: scale(1.1); }
     .group-item-info { flex: 1; min-width: 0; }
     .group-item-name {
       font-size: 12px;
@@ -390,9 +394,48 @@
       text-overflow: ellipsis;
     }
     .group-item-count { font-size: 10px; color: var(--ink-faint); }
+    .group-edit-btn {
+      width: 24px;
+      height: 24px;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      color: var(--ink-faint);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .group-edit-btn:hover { border-color: var(--ink-light); color: var(--ink); }
+    .sort-row { display: flex; gap: 8px; margin-top: 8px; }
+    .sort-row .btn { flex: 1; margin-top: 0; }
     .group-actions { display: flex; gap: 6px; margin-top: 8px; align-items: stretch; }
     .group-actions .btn { flex: 1; white-space: nowrap; margin-top: 0; }
     .btn-sm { padding: 7px; font-size: 11px; }
+
+    /* Color picker popup */
+    .color-picker-popup {
+      display: flex;
+      gap: 6px;
+      padding: 8px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1000;
+    }
+    .color-option {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform 0.1s, border-color 0.15s;
+    }
+    .color-option:hover { transform: scale(1.15); border-color: var(--ink); }
 
     /* Duplicate list */
     .dup-item {
@@ -508,6 +551,11 @@
     <button class="btn btn-primary" id="organizeBtn" disabled>
       AI 智慧分組
     </button>
+
+    <div class="sort-row">
+      <button class="btn btn-sm" id="sortByTitleBtn">依名稱排序</button>
+      <button class="btn btn-sm" id="sortByDomainBtn">依網域排序</button>
+    </div>
 
     <div class="divider"></div>
 
