@@ -154,6 +154,9 @@
     .settings-panel .save-key-btn:hover:not(:disabled) { background: var(--accent-hover); }
     .settings-panel .save-key-btn:disabled { background: var(--line); color: var(--ink-faint); cursor: not-allowed; }
     .settings-panel .model-row { margin-top: 12px; }
+    .settings-footer { margin-top: 12px; font-size: 10px; color: var(--ink-faint); }
+    .settings-footer a { color: var(--ink-faint); text-decoration: none; }
+    .settings-footer a:hover { color: var(--ink-light); }
     .settings-panel select {
       width: 100%;
       padding: 8px 10px;
@@ -528,6 +531,11 @@
       <select id="modelSelect" disabled>
         <option value="">請先儲存 API Key</option>
       </select>
+    </div>
+    <div class="settings-footer">
+      <a href="https://larrylai1993.github.io/SumYourHorribleTabs/privacy.html" target="_blank">Privacy Policy</a>
+      &middot;
+      <a href="https://github.com/larrylai1993/SumYourHorribleTabs" target="_blank">GitHub</a>
     </div>
   </div>
 
